@@ -1,6 +1,10 @@
 ---
 title: "R Crash Course"
 output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '2'
   html_notebook: 
     theme: spacelab
     toc: yes
@@ -8,14 +12,10 @@ output:
     toc_float:
       collapsed: yes
       smooth_sroll: yes
-  html_document:
-    df_print: paged
-    toc: yes
-    toc_depth: '2'
 ---
 
 ```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
-knitr::opts_knit$set(root.dir = normalizePath("/Users/justinjones/Documents/Grad School/Georgia/Classwork/2020 Teams Seminar/R Tutorial"))
+knitr::opts_knit$set(root.dir = normalizePath("/Users/justinjones/Documents/Grad School/Georgia/Classwork/2020 Teams Seminar/R Tutorials/R Crash Course"))
 ```
 ```{r packages}
 library(tidyverse)
@@ -34,9 +34,9 @@ Every once and a while R releases a new version of the software. This *will not*
 # Installing and Loading Packages
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-install.packages()
-require()
-library()
+#install.packages()
+#require()
+#library()
 ```
 
 # Reading in Data
