@@ -1,17 +1,20 @@
 ---
 title: "R Crash Course"
 output:
-  html_document:
-    df_print: paged
-    toc: yes
-    toc_depth: '2'
-  html_notebook: 
-    theme: spacelab
+  html_document: 
+    theme: united
     toc: yes
     toc_depth: 2
     toc_float:
       collapsed: yes
-      smooth_sroll: yes
+      smooth_scroll: yes
+  html_notebook: 
+    theme: united
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
 ---
 
 ```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
