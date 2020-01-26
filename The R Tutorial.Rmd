@@ -1,0 +1,112 @@
+---
+title: "The R Tutorial"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '2'
+  html_notebook: 
+    theme: spacelab
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_sroll: yes
+---
+
+```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
+knitr::opts_knit$set(root.dir = normalizePath("/Users/justinjones/Documents/Grad School/Georgia/Classwork/2020 Teams Seminar/R Tutorial"))
+```
+```{r packages}
+library(tidyverse)
+library(psych)
+library(lavaan)
+library(lme4)
+library(data.table)
+library(readxl)
+library(magrittr)
+library(RCurl)
+```
+# Checking your R version and Updating
+
+Every once and a while R releases a new version of the software. This *will not* download automagically, so you should check the r website https://www.r-project.org/ from time to time, or follow them on twitter. You can see what version you are currently on by entering `version` into the console. 
+
+# Installing and Loading Packages
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+install.packages()
+require()
+library()
+```
+
+# Reading in Data
+
+## CSV files
+
+There are three main ways to read in csv files. First, you can use base R with the function `read.csv`. Alternatively you can use the `read_csv` function from the readr package. The final way is with the `fread` function from the data.table package. 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+iris.1<- read.csv("./data/iris.csv")
+iris.2<- read_csv("./data/iris.csv")
+iris.3<- fread("./data/iris.csv")
+```
+
+## Excel files
+
+For excel files, you can use the readxl package. *Note:* if you have multiple sheets you will need to specify which sheet you want to read in. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+readxl_example("deaths.xlsx")
+iris.4<-read_excel(readxl_example("deaths.xlsx"))
+```
+
+## Data from a website
+
+In this example we are downloading movie data from GitHub. Note that this isn't web scraping, this is merely accessing a previously compiled dataset, which in this case is in csv format. Reading in data from a website is helpful if you are accessing archival datasets etc. We won't get into APIs just yet but this is the first step in that direction. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+movies <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/fandango/fandango_score_comparison.csv",header=TRUE)
+```
+```{r}
+head(movies)
+```
+
+## delimited text files 
+
+## SPSS files 
+
+# Exploring a Dataset
+
+# Basic data manipulation
+
+## The Tidyverse
+![](./data/tidyverse-logo.png){width=250px}
+
+### Magrittr
+
+Lets start with the basic pipe operator `%>%`
+
+The other operator that is useful to know is `%<>%`. This operator at the beginning of a pipe sequence assigns the results to the original variable foregoing the ubiquitious assignment procedure `<-`.
+```{r}
+
+
+```
+
+### Filter
+
+### Select
+
+### Mutate
+
+### Summarize
+
+# Basic Descriptives
+
+## Means/SD/Min/Max/Range
+
+# Getting Reliability Estimates
+
+# Computing Scale Scores
+
+# Regression
+
+# Anova
