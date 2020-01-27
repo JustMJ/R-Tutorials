@@ -173,7 +173,7 @@ iris.1 %<>%
   group_by(Species) %>%
   summarise(mean = mean(Petal.Length))
 ```
-###Dplyr
+### Dplyr
 
 Dplyr is a package containing functions that allow us to manipulate data. Most if not all of the Dplyr verbs have a selection of scoped variants including `_if`, `_at`, and `_all`. Each function has some of its own unique scoped variants as well.
 
@@ -250,6 +250,11 @@ Conscientiousness<- dplyr::select(reliability.data,starts_with("C"),-country)
 measures<-list(Extraversion,Neuroticism,Agreeableness,Openness,Conscientiousness)
 map(measures,psych::alpha)
 ```
+# Getting Descriptives
+```{r}
+describe(survey)
+```
+
 # Computing Scale Scores
 
 This is done with the purrr package, which is the Tidyverse version of apply. It allows us to iterate over rows,columns,dataframes in a clean and concise manner.
