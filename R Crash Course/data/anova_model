@@ -1,0 +1,18 @@
+
+% Table created by stargazer v.5.2.2 by Marek Hlavac, Harvard University. E-mail: hlavac at fas.harvard.edu
+% Date and time: Sun, Jan 26, 2020 - 21:08:37
+\begin{table}[!htbp] \centering 
+  \caption{} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}}lccccccc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+Statistic & \multicolumn{1}{c}{N} & \multicolumn{1}{c}{Mean} & \multicolumn{1}{c}{St. Dev.} & \multicolumn{1}{c}{Min} & \multicolumn{1}{c}{Pctl(25)} & \multicolumn{1}{c}{Pctl(75)} & \multicolumn{1}{c}{Max} \\ 
+\hline \\[-1.8ex] 
+Sum Sq & 5 & 1,245.924 & 1,753.096 & 2.441 & 3.408 & 2,403.790 & 3,778.233 \\ 
+Df & 5 & 1,005.000 & 2,244.453 & 1 & 1 & 2 & 5,020 \\ 
+F value & 4 & 813.862 & 1,586.837 & 1.622 & 3.802 & 840.058 & 3,193.828 \\ 
+Pr(\textgreater F) & 4 & 0.058 & 0.095 & 0.000 & 0.000 & 0.074 & 0.198 \\ 
+\hline \\[-1.8ex] 
+\end{tabular} 
+\end{table} 

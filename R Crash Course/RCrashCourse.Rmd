@@ -1,5 +1,6 @@
 ---
 title: "R Crash Course"
+author: Justin M. Jones
 output:
   html_document: 
     theme: united
@@ -34,6 +35,16 @@ library(readxl)
 library(magrittr)
 library(haven)
 library(stargazer)
+library(GGally)
+library(car)
+library(kableExtra)
+library(yarrr)
+library(lsmeans)
+library(broom)
+library(multcomp)
+library(lsr)
+library(apaTables)
+library(MBESS)
 ```
 # Checking your R version and Updating
 
@@ -58,7 +69,7 @@ Calling `?function` allows you to look at the arguments for a function as well a
 
 ## CSV files
 
-There are three main ways to read in csv files. First, you can use base R with the function `read.csv`. Alternatively you can use the `read_csv` function from the readr package. The final way is with the `fread` function from the data.table package. 
+There are three main ways to read in csv files. First, you can use base R with the function `read.csv`. Alternatively you can use the `read_csv` function from the readr package. The final way is with the `fread` function from the `data.table` package. 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 # Base R
 iris.1<- read.csv("./data/iris.csv",row.names=NULL)
@@ -182,35 +193,35 @@ You can either pass a list of column names (no quotes necessary), you can use `:
 Select comes with some unique modifiers which are useful for dealing with named columns. This includes `Starts_with`,`Ends_with`, and `contains`.
 ```{r}
 demographics<-survey %>%
-  select(id:educ)
+  dplyr::select(id:educ)
 ```
 
 ```{r}
 demographics<- survey %>%
-  select(-source)
+ dplyr::select(-source)
 ```
 
 ```{r}
 iris %>%
-  select(starts_with("Sepal"))
+  dplyr::select(starts_with("Sepal"))
 ```
 
 Select is also valuable for reordering columns
 ```{r}
 iris %>%
-  select(Sepal.Length,everything())
+  dplyr::select(Sepal.Length,everything())
 ```
 
 #### Mutate
 
-The mutate function allows us to compute new variables. This is especially helpful for analyses where you need to create scale scores, compute variable means by individual/group, dummy code etc.You will see below that I first call `rowwise`. This is because by default `mutate` iterates over columns. 
+The mutate function allows us to compute new variables. By default `mutate` iterates over columns. You can make it iterate over rows with `rowwise()`, however this is no longer supported by people such as Hadley Wickham, who suggest using `purrr` instead. 
 
 ```{r}
 survey %>%
-  rowwise() %>%
-  mutate(op = mean(c(op1,op2,op3,op4,op5,op6,na.rm = TRUE))) %>%
-  select(id,op)
+  mutate(year = 2015) %>%
+  dplyr::select(id,year)
 ```
+
 #### Transmute
 
 Transmute is similar to mutate but it only keeps the new variables by default.
@@ -220,10 +231,165 @@ survey %>%
   transmute(op = mean(c(op1,op2,op3,op4,op5,op6,na.rm = TRUE)))
 ```
 
-# Getting Reliability Estimates
+#### Purrr
+```{r}
+iris %>% 
+  mutate(Max.Len= purrr::pmap_dbl(list(Sepal.Length, Petal.Length), max))
+```
 
+# Getting Reliability Estimates
+```{r}
+reliability.data<- read_tsv("./data/data.csv")
+
+Extraversion<- dplyr::select(reliability.data,starts_with("E"),-engnat)
+Neuroticism<- dplyr::select(reliability.data,starts_with("N"))
+Agreeableness<- dplyr::select(reliability.data,starts_with("A"),-age)
+Openness<- dplyr::select(reliability.data,starts_with("O"))
+Conscientiousness<- dplyr::select(reliability.data,starts_with("C"),-country)
+
+measures<-list(Extraversion,Neuroticism,Agreeableness,Openness,Conscientiousness)
+map(measures,psych::alpha)
+```
 # Computing Scale Scores
 
-# Regression
+This is done with the purrr package, which is the Tidyverse version of apply. It allows us to iterate over rows,columns,dataframes in a clean and concise manner.
+````{r}
+Extraversion %>% mutate(score = pmap_dbl(.,function(...) mean(c(...))))
+```
 
+# Regression
+Creating a cleaning function
+```{r}
+replace_over_4<- function(x) replace(x,x>4,NA)
+```
+```{r}
+health_tbl<- read_tsv("./data/w4inhome_dvn.tab") %>%
+  dplyr::select(mh1 = H4MH3, mh2 = H4MH4, mh3 = H4MH5, mh4 = H4MH6,
+         jailage = H4CJ20, gender = BIO_SEX4) %>%
+  mutate_at(vars(mh1:mh4),replace_over_4) %>%
+  mutate(mh1 = 4 - mh1,
+         mh4 = 4 - mh4) %>%
+  rowwise() %>%
+  mutate(mh = mean(c(mh1,mh2,mh3,mh4),na.rm=T)) %>%
+  ungroup() %>%
+  mutate(gender = factor(gender,levels =c(1,2),labels = c("male","female"))) %>%
+  filter(jailage < 97)
+```
+Visualization
+```{r}
+dplyr::select(health_tbl, 5:7) %>% ggpairs()
+```
+```{r}
+dplyr::select(health_tbl, -gender) %>% cor(use ="pairwise")
+```
+Describe
+```{r}
+dplyr::select(health_tbl,-gender) %>% apa.cor.table(.,filename="./output/Cortable.doc",table.number=1)
+```
+Analysis
+```{r}
+model_1<- lm(mh ~ jailage + gender, data = health_tbl)
+```
+
+```{r}
+par(mfrow = c(2,2))
+plot(model_1)
+par(mfrow=c(1,1))
+```
+```{r}
+tidy(summary(model_1))
+```
+```{r}
+model1_augment<-augment(model_1)
+ggplot(model1_augment,aes(x=jailage, y=mh,color=gender)) +
+  geom_line(aes(y=.fitted))
+```
+Model 2
+```{r}
+model2<- lm(mh ~ jailage + gender + jailage:gender, data=health_tbl)
+par(mfrow=c(2,2))
+plot(model2)
+par(mfrow=c(1,1))
+```
+```{r}
+tidy(summary(model2))
+```
+```{r}
+ggplot(health_tbl, aes(x=jailage, y=mh, color=gender, group=gender)) + 
+  geom_smooth(method= "lm",se=F)
+```
+Comparing Models
+```{r}
+anova(model_1,model2)
+```
+Comparing Change in $R^2$
+```{r}
+summary(model2)$r.squared-summary(model_1)$r.squared
+```
 # Anova
+
+Data Import and Cleaning
+```{r}
+health_tbl<- read_tsv("./data/w4inhome_dvn.tab") %>%
+  transmute(admin_month = IMONTH4,
+            gender = factor(BIO_SEX4,levels = c(1,2),labels= c("male","female")),
+            living_mother = factor(H4WP1,levels= c(0,1,8),labels=c("No","Yes","Don't Know")),
+            fiw = replace(H4LM29, H4LM29 >=6,NA))
+```
+
+Plotting
+```{r}
+ggpairs(health_tbl)
+```
+Analysis
+```{r}
+options(contrasts = c("contr.sum", "contr.poly"))
+linear_model<- lm(fiw ~ admin_month + living_mother + gender, data = health_tbl)
+anova_model<- Anova(linear_model,type = 3)
+anova_model
+```
+
+```{r}
+kable(anova_model,digits = 3, out="./output/anova_model.htm")
+```
+Diagnostic Plots
+```{r}
+plot(linear_model)
+pirateplot(formula = "fiw ~ living_mother + gender",data = health_tbl)
+```
+
+Marginal Means Plot
+```{r}
+mm_df<- tidy(lsmeans(linear_model,"gender",by="living_mother"))
+ggplot(mm_df,
+       aes(x=living_mother,
+           y=estimate,
+           color=gender,
+           group=gender)) +
+  geom_line()
+```
+
+Tukeys Post-hoc Tests
+```{r}
+health_tbl %<>% mutate(cond=interaction(gender,living_mother,sep=" x "))
+posthoc_model<- lm(fiw~admin_month + cond, data = health_tbl)
+posthocs <- glht(posthoc_model, linfct=mcp(cond="Tukey"))
+summary(posthocs)
+```
+
+Effect size estimates
+```{r}
+etaSquared(linear_model, type=3,anova=T)
+```
+
+Publication worthy APA table
+```{r}
+apa.aov.table(linear_model,conf.level=95,type=3,"./output/analysis.doc")
+```
+
+Planned Contrasts
+```{r}
+linear_model_lsm<- lsmeans(linear_model,"living_mother")
+contrast(linear_model_lsm, list(knowledge=c(-.5,-.5,1)))
+```
+
