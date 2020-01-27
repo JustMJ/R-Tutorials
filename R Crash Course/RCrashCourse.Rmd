@@ -19,7 +19,9 @@ output:
 
 ```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
 knitr::opts_knit$set(root.dir = normalizePath("/Users/justinjones/Documents/Grad School/Georgia/Classwork/2020 Teams Seminar/R Tutorials/R Crash Course"))
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, cache = F)
 ```
+
 ```{r packages}
 library(tidyverse)
 library(psych)
@@ -28,7 +30,8 @@ library(lme4)
 library(data.table)
 library(readxl)
 library(magrittr)
-library(RCurl)
+library(haven)
+library(stargazer)
 ```
 # Checking your R version and Updating
 
@@ -42,24 +45,34 @@ Every once and a while R releases a new version of the software. This *will not*
 #library()
 ```
 
+# Function Troubleshooting
+
+Calling `?function` allows you to look at the arguments for a function as well as their defaults. This is really helpful for when using new functions, knowing what abilities a function has, or for troubleshooting. 
+```{r}
+?read.csv
+```
+
 # Reading in Data
 
 ## CSV files
 
 There are three main ways to read in csv files. First, you can use base R with the function `read.csv`. Alternatively you can use the `read_csv` function from the readr package. The final way is with the `fread` function from the data.table package. 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
-iris.1<- read.csv("./data/iris.csv")
+# Base R
+iris.1<- read.csv("./data/iris.csv",row.names=NULL)
+# Readr
 iris.2<- read_csv("./data/iris.csv")
+# data.table
 iris.3<- fread("./data/iris.csv")
 ```
 
 ## Excel files
 
-For excel files, you can use the readxl package. *Note:* if you have multiple sheets you will need to specify which sheet you want to read in. 
+For excel files, you can use the readxl package. *Note:* if you have multiple sheets you will need to specify which sheet you want to read in (i.e., `read_excel("<filename>",sheet = "<sheetname>")`
 
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 readxl_example("deaths.xlsx")
-iris.4<-read_excel(readxl_example("deaths.xlsx"))
+Deaths<-read_excel(readxl_example("deaths.xlsx"))
 ```
 
 ## Data from a website
@@ -75,36 +88,135 @@ head(movies)
 
 ## delimited text files 
 
+Sometimes data is saved in a tabular format where values are separated by tabs or some other delimiter. We can use `read.table` which allows us to specify how the file is delimited.
+```{r}
+insect<- read.table(file = 'http://www.ucd.ie/ecomodel/Resources/INSECT.TXT',
+                     sep = '\t',
+                     header = TRUE,
+                     skip=3)
+```
 ## SPSS files 
 
+For SPSS files I prefer to use the `haven` package. Another alternative is the `foreign` package, but it is a little less consistent than I would prefer.
+
+```{r}
+survey<- read_sav("~/Downloads/survey.sav")
+```
 # Exploring a Dataset
+
+Getting a sense of the structure and characteristics of a dataset is an important starting step. There are a few different ways we can examine a dataset.
+
+1. We can print out the first few rows with `head`, or the last few rows with `tail`. It defaults to 10 rows, but you can adjust that by passing a number to the second argument.
+```{r}
+head(iris.1)
+```
+
+```{r}
+tail(iris.1)
+```
+
+```{r}
+head(iris.1,20)
+```
+
+We can use describe from the `psych` package. 
+```{r}
+psych::describe(iris.1)
+```
+
+We can print a descriptives table and get a headstart on putting together our final documentation with `stargazer`.
+```{r}
+stargazer(iris.1,out="./output/iris.1.table.htm")
+```
+We can use summary from base r. 
+```{r}
+summary(iris.1)
+```
 
 # Basic data manipulation
 
 ## The Tidyverse
 ![](./data/tidyverse-logo.png){width=250px}
 
+The Tidyverse is a collection of packages for reading, manipulating, analyzing, visualizing, and reporting in R. It has gained widespread popularity and rivals base R. Many people either strictly adhere to tidyverse packages, or utilize base R. For this reason, you may see people do the same thing in different ways, and they may recommend different solutions based on their preferred packages. Ultimately this points out one of the advantages of R which is that there are no right answers. 
+
+I think that tidyverse is untuitive, consistent across packages, flexible, and in many instances better performing (i.e., speed) than base R. Even if you choose not to use Tidyverse packages I think some of the functions are helpful to know.
+
 ### Magrittr
 
-Lets start with the basic pipe operator `%>%`
+Lets start with the basic pipe operator `%>%`. The pipe operator allows you to run multiple functions on a dataset in succession while cutting down on the number of lines of code and cleaning up your codes appearance. I like to think of the pipe as meaning "and then". 
 
-The other operator that is useful to know is `%<>%`. This operator at the beginning of a pipe sequence assigns the results to the original variable foregoing the ubiquitious assignment procedure `<-`.
+Here we are calling the iris.1 data set *and then* grouping that dataset by `Species`, *and then* summarising those groups by calculating the mean. Because I do not assign this to a variable the output prints to the console without changing the data. One thing you will notice is that the pipe passes the data at the beginning to the next argument, so I am not specifying a dataset for the two functions, because it knows i'm referring to `iris.1`. Also remember that the functions are applied consecutively. So its like the results of each row are stored in a temporary dataset and you performing the next set of functions on that new dataset (not the original one). 
+
 ```{r}
-
-
+iris.1 %>%
+  group_by(Species) %>%
+  summarise(mean = mean(Petal.Length))
 ```
 
-### Filter
+With the `%<>%` assignment pipe, we can save the results to an object. This is equivalent to `iris.1<- iris.1`. Here 
+```{r}
+iris.1 %<>% 
+  group_by(Species) %>%
+  summarise(mean = mean(Petal.Length))
+```
+###Dplyr
 
-### Select
+Dplyr is a package containing functions that allow us to manipulate data. Most if not all of the Dplyr verbs have a selection of scoped variants including `_if`, `_at`, and `_all`. Each function has some of its own unique scoped variants as well.
 
-### Mutate
+#### Filter
 
-### Summarize
+`Filter` allows us to.. well.. filter our data based on a formula that we define. You can use one criterion, you can specify that it filters on one criterion or another `filter(Sepal.Length >= 5 | Sepal.Width < 3)`, or you can apply two filter conditions `filter(Sepal.Length >= 5 & Sepal.Width < 3)`.
+```{r}
+iris.2 %>%
+  filter(Sepal.Length >= 5) 
+```
+#### Select
 
-# Basic Descriptives
+The select function allows us to remove columns, or pick out columns for a new dataset. 
 
-## Means/SD/Min/Max/Range
+You can either pass a list of column names (no quotes necessary), you can use `:` and specify the first and last column of a range, or you can negative subset to remove columns.
+
+Select comes with some unique modifiers which are useful for dealing with named columns. This includes `Starts_with`,`Ends_with`, and `contains`.
+```{r}
+demographics<-survey %>%
+  select(id:educ)
+```
+
+```{r}
+demographics<- survey %>%
+  select(-source)
+```
+
+```{r}
+iris %>%
+  select(starts_with("Sepal"))
+```
+
+Select is also valuable for reordering columns
+```{r}
+iris %>%
+  select(Sepal.Length,everything())
+```
+
+#### Mutate
+
+The mutate function allows us to compute new variables. This is especially helpful for analyses where you need to create scale scores, compute variable means by individual/group, dummy code etc.You will see below that I first call `rowwise`. This is because by default `mutate` iterates over columns. 
+
+```{r}
+survey %>%
+  rowwise() %>%
+  mutate(op = mean(c(op1,op2,op3,op4,op5,op6,na.rm = TRUE))) %>%
+  select(id,op)
+```
+#### Transmute
+
+Transmute is similar to mutate but it only keeps the new variables by default.
+```{r}
+survey %>%
+  rowwise() %>%
+  transmute(op = mean(c(op1,op2,op3,op4,op5,op6,na.rm = TRUE)))
+```
 
 # Getting Reliability Estimates
 
