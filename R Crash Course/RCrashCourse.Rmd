@@ -99,15 +99,16 @@ movies <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/maste
 head(movies)
 ```
 
-## delimited text files 
+## Delimited Text Files 
 
-Sometimes data is saved in a tabular format where values are separated by tabs or some other delimiter. We can use `read.table` which allows us to specify how the file is delimited.
+Sometimes data is saved in a format where values are separated by tabs or some other delimiter. We can use `read.table` which allows us to specify how the file is delimited.
 ```{r}
 insect<- read.table(file = 'http://www.ucd.ie/ecomodel/Resources/INSECT.TXT',
                      sep = '\t',
                      header = TRUE,
                      skip=3)
 ```
+
 ## SPSS files 
 
 For SPSS files I prefer to use the `haven` package. Another alternative is the `foreign` package, but it is a little less consistent than I would prefer.
@@ -115,9 +116,10 @@ For SPSS files I prefer to use the `haven` package. Another alternative is the `
 ```{r}
 survey<- read_sav("~/Downloads/survey.sav")
 ```
+
 # Exploring a Dataset
 
-Getting a sense of the structure and characteristics of a dataset is an important starting step. There are a few different ways we can examine a dataset.
+Getting a sense of the structure and characteristics of a dataset is an important step. There are a few different ways we can examine a dataset.
 
 1. We can print out the first few rows with `head`, or the last few rows with `tail`. It defaults to 10 rows, but you can adjust that by passing a number to the second argument.
 ```{r}
@@ -138,7 +140,7 @@ psych::describe(iris.1)
 ```
 
 We can print a descriptives table and get a headstart on putting together our final documentation with `stargazer`.
-```{r}
+```{r include=FALSE}
 stargazer(iris.1,out="./output/iris.1.table.htm")
 ```
 We can use summary from base r. 
@@ -232,12 +234,15 @@ survey %>%
 ```
 
 #### Purrr
+
+This is another package in the Tidyverse,but it does not focus on data manipulation. Rather, purrr is an invaluable resource for applying functions iteratvely across lists,nested datasets. I'm going to keep fleshing this section out so stay tuned.
 ```{r}
 iris %>% 
   mutate(Max.Len= purrr::pmap_dbl(list(Sepal.Length, Petal.Length), max))
 ```
 
 # Getting Reliability Estimates
+
 ```{r}
 reliability.data<- read_tsv("./data/data.csv")
 
@@ -257,16 +262,23 @@ describe(survey)
 
 # Computing Scale Scores
 
-This is done with the purrr package, which is the Tidyverse version of apply. It allows us to iterate over rows,columns,dataframes in a clean and concise manner.
+This is done with the purrr package, which is the Tidyverse version of apply. It allows us to iterate over rows,columns,dataframes in a clean and concise manner. You can also do this with `rowwise()` and `mutate`, but again Hadley has issues with that. 
 ````{r}
 Extraversion %>% mutate(score = pmap_dbl(.,function(...) mean(c(...))))
 ```
 
 # Regression
-Creating a cleaning function
+
+Here i'll demonstrate a very basic regression. It's not the complexity of the statistics, but rather showing how to go through every phase of an analysis.
+
+I need to create a function here which I get to when I clean the data.
 ```{r}
 replace_over_4<- function(x) replace(x,x>4,NA)
 ```
+
+## Cleaning the data
+
+I do this all in one pipe. Proceed at your own risk.
 ```{r}
 health_tbl<- read_tsv("./data/w4inhome_dvn.tab") %>%
   dplyr::select(mh1 = H4MH3, mh2 = H4MH4, mh3 = H4MH5, mh4 = H4MH6,
@@ -280,18 +292,24 @@ health_tbl<- read_tsv("./data/w4inhome_dvn.tab") %>%
   mutate(gender = factor(gender,levels =c(1,2),labels = c("male","female"))) %>%
   filter(jailage < 97)
 ```
-Visualization
+
+## Visualization
 ```{r}
 dplyr::select(health_tbl, 5:7) %>% ggpairs()
 ```
+
 ```{r}
 dplyr::select(health_tbl, -gender) %>% cor(use ="pairwise")
 ```
-Describe
+
+## Descriptives
 ```{r}
 dplyr::select(health_tbl,-gender) %>% apa.cor.table(.,filename="./output/Cortable.doc",table.number=1)
 ```
-Analysis
+
+## Analysis
+
+### Model 1
 ```{r}
 model_1<- lm(mh ~ jailage + gender, data = health_tbl)
 ```
@@ -309,7 +327,8 @@ model1_augment<-augment(model_1)
 ggplot(model1_augment,aes(x=jailage, y=mh,color=gender)) +
   geom_line(aes(y=.fitted))
 ```
-Model 2
+
+### Model 2
 ```{r}
 model2<- lm(mh ~ jailage + gender + jailage:gender, data=health_tbl)
 par(mfrow=c(2,2))
@@ -323,17 +342,21 @@ tidy(summary(model2))
 ggplot(health_tbl, aes(x=jailage, y=mh, color=gender, group=gender)) + 
   geom_smooth(method= "lm",se=F)
 ```
-Comparing Models
+
+### Comparing Models
 ```{r}
 anova(model_1,model2)
 ```
-Comparing Change in $R^2$
+#### Comparing Change in $R^2$
 ```{r}
 summary(model2)$r.squared-summary(model_1)$r.squared
 ```
+
 # Anova
 
-Data Import and Cleaning
+I'm going to do the same thing that I did above except this will be an ANOVA.Yes its a tour of the GLM.
+
+## Data Import and Cleaning
 ```{r}
 health_tbl<- read_tsv("./data/w4inhome_dvn.tab") %>%
   transmute(admin_month = IMONTH4,
@@ -342,11 +365,12 @@ health_tbl<- read_tsv("./data/w4inhome_dvn.tab") %>%
             fiw = replace(H4LM29, H4LM29 >=6,NA))
 ```
 
-Plotting
+## Visualization
 ```{r}
 ggpairs(health_tbl)
 ```
-Analysis
+
+## Analysis
 ```{r}
 options(contrasts = c("contr.sum", "contr.poly"))
 linear_model<- lm(fiw ~ admin_month + living_mother + gender, data = health_tbl)
@@ -354,16 +378,18 @@ anova_model<- Anova(linear_model,type = 3)
 anova_model
 ```
 
+## Descriptives
 ```{r}
 kable(anova_model,digits = 3, out="./output/anova_model.htm")
 ```
-Diagnostic Plots
+
+## Diagnostic Plots
 ```{r}
 plot(linear_model)
 pirateplot(formula = "fiw ~ living_mother + gender",data = health_tbl)
 ```
 
-Marginal Means Plot
+## Marginal Means Plot
 ```{r}
 mm_df<- tidy(lsmeans(linear_model,"gender",by="living_mother"))
 ggplot(mm_df,
@@ -374,7 +400,7 @@ ggplot(mm_df,
   geom_line()
 ```
 
-Tukeys Post-hoc Tests
+## Tukeys Post-hoc Tests
 ```{r}
 health_tbl %<>% mutate(cond=interaction(gender,living_mother,sep=" x "))
 posthoc_model<- lm(fiw~admin_month + cond, data = health_tbl)
@@ -382,17 +408,17 @@ posthocs <- glht(posthoc_model, linfct=mcp(cond="Tukey"))
 summary(posthocs)
 ```
 
-Effect size estimates
+## Effect size estimates
 ```{r}
 etaSquared(linear_model, type=3,anova=T)
 ```
 
-Publication worthy APA table
-```{r}
+## Publication worthy APA table
+```{r include=FALSE}
 apa.aov.table(linear_model,conf.level=95,type=3,"./output/analysis.doc")
 ```
 
-Planned Contrasts
+## Planned Contrasts
 ```{r}
 linear_model_lsm<- lsmeans(linear_model,"living_mother")
 contrast(linear_model_lsm, list(knowledge=c(-.5,-.5,1)))
