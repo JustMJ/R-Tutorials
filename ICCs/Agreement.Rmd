@@ -1,0 +1,174 @@
+---
+title: "ICCs"
+author: Justin M. Jones
+output:
+  html_document: 
+    theme: united
+    df_print: paged
+    code_folding: show
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+  html_notebook: 
+    theme: united
+    toc: yes
+    toc_depth: 2
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+---
+
+---
+```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
+knitr::opts_knit$set(root.dir = normalizePath("/Users/justinjones/Documents/Grad School/Georgia/Classwork/2020 Teams Seminar/R Tutorials/ICCs"))
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, cache = F)
+```
+
+## Load Packages
+```{r}
+library(multilevel)
+library(foreign)
+library(psych)
+library(nlme)
+```
+
+# Using linear models
+
+## Load Data
+```{r}
+data<-read.spss("./Data/teams.sav", use.value.labels=F, to.data.frame=TRUE,use.missings=TRUE)
+```
+
+## Clean
+Turning the grouping variable into a factor
+```{r}
+names(data)
+class(data$GroupNum)
+data$GroupNum<-as.factor(data$GroupNum)
+class(data$GroupNum)
+```
+
+# ICC1
+
+Can we include higher-order constructs in our model?
+```{r}
+model.1<-(lme(IntCoh~1,random=~1|GroupNum,data=data,na.action=na.omit))
+VarCorr(model.1)
+
+ICC1.model.1=.1531487/(.1531487+.6607064)
+ICC1.model.1
+```
+18% of the variance in interpersonal cohesion is due to being on different teams 
+
+# ICC2
+
+Are the group means reliable/stable? 
+
+tells us about the psychometric quality of the group means - are the means for each group relatively stable/consistent?
+
+```{r}
+ICC2.model.1=.1531487/(.1531487+.6607064/4.42) 
+ICC2.model.1
+```
+The reliability is below what we would probably like (i.e., ~.70)
+
+# RWG
+Can we aggregate the individual scores? 
+```{r}
+names(data)
+
+#See LeBreton and Senter table re: rwgj code below - number to use after ranvar= depends on scale points and the distribution desired
+rwgj.intcoh.un<-rwg.j(data[,c(7:11)],data$GroupNum,ranvar=4.00)
+
+#uniform distribution
+rwgj.intcoh.ss<-rwg.j(data[,c(7:11)],data$GroupNum,ranvar=2.90)
+
+#slightly skewed distribution
+summary(rwgj.intcoh.un)
+summary(rwgj.intcoh.ss)
+```
+
+# Using the Psych Package
+## example from Shrout and Fleiss (1979)
+```{r} 
+sf <- matrix(c(9,    2,   5,    8,
+6,    1,   3,    2,
+8,    4,   6,    8,
+7,    1,   2,    6,
+10,   5,   6,    9,
+6,   2,   4,    7),ncol=4,byrow=TRUE)
+colnames(sf) <- paste("J",1:4,sep="")
+rownames(sf) <- paste("S",1:6,sep="")
+sf
+```
+##
+```{r}
+ICC(sf)
+```
+With ANOVA
+```{r}
+data(bhr2000)
+```
+```{r}
+hrs.mod<-aov(HRS~as.factor(GRP),data=bhr2000)
+summary(hrs.mod)
+```
+
+```{r}
+ICC1(hrs.mod)
+ICC2(hrs.mod)
+```
+The ICC(1) value of .17 indicates that 17% of the variance in individual perceptions of work hours can be “explained” by group membership. The ICC(2) value of .92 indicates that groups can be reliably differentiated in terms of average work hours.
+
+## Graphing ICCs
+```{r}
+graph.ran.mean(bhr2000$HRS, bhr2000$GRP, nreps=1000, limits=c(8,14),bootci=TRUE)
+```
+
+The bar chart represents each groups' average rating of work hours sorted from highest to lowest, and the line represents a random distribution where 99 pseudo groups (with exact size characteristics of the actual groups) were created 100 times and the sorted values were averaged across the 1000 iterations. The dotted lines represent the upper and lower 95% confidence interval estimates. In short, the line represents the expected distribution if there were no group-level properties associated with these data. The graph suggests fairly evenly distributed group-level properties associated with the data. That is, the ICC(1) value of .17 does not seem to be caused by one or two aberrant groups.
+
+
+## rwg and rwg(j) in the multilevel package
+
+Both the rwg and rwg.j functions are based upon the formulations described in James et al.(1984). Both functions require the user to specify three pieces of information. The first piece of information is the variable of interest (x), the second is the grouping variable (grpid), and third is the estimate of the expected random variance (ranvar). The default estimate of ranvar is 2, which is the expected random variance based upon the rectangular distribution for a 5-point item) calculated using the formula ranvar=(A^2-1)/12 where A represents the number of items (i.e., # of response options associated with the scale anchors.)
+
+### rwg
+```{r}
+RWG.RELIG<-rwg(bhr2000$RELIG,bhr2000$GRP,ranvar=2)
+RWG.RELIG[1:10,] #examine first 10 rows of data
+```
+The first column contains the group names (grpid), the second column contains the 99 rwg values – one for each group. The third column contains the group size. To calculate the mean rwg value use the summary command.
+
+```{r}
+summary(RWG.RELIG)
+```
+The summary command informs us that the average rwg value is .186 and the range is from 0 to 0.433. By convention, values at or above 0.70 are considered good agreement, so there appears to be low agreement among individuals with regard to religion. The summary command also provides information about the group sizes.
+```{r}
+hist(RWG.RELIG[,2])
+```
+
+#### Testing a different distribution 
+
+To calculate rwg for work hours, the expected random variance (EV) needs to be changed from its default value of 2. Work hours was asked using an 11-point item, so EV based on the rectangular distribution is 10 [(11^2 -1)/12)
+```{r}
+RWG.HRS<-rwg(bhr2000$HRS,bhr2000$GRP,ranvar=10.00)
+mean(RWG.HRS[,2])
+```
+### rwg(j)
+
+The first argument to rwg.j is a matrix instead of a vector. In the matrix, each column represents one item in the multi-item scale, and each row represents an individual response. For instance, columns 2-12 in bhr2000 represent 11 items comprising a leadership scale. The items were assessed using 5-point response options (Strongly Disagree to Strongly Agree), so the expected random variance is 2.
+
+```{r}
+RWGJ.LEAD<-rwg.j(bhr2000[,2:12],bhr2000$GRP,ranvar=2)
+summary(RWGJ.LEAD)
+```
+
+# Supplementary
+
+awg index
+```{r}
+AWG.LEAD<-awg(bhr2000[,2:12],bhr2000$GRP)
+summary(AWG.LEAD)
+```
